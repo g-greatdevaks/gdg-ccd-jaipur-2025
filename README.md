@@ -11,6 +11,11 @@ Sr. Hybrid Cloud Architect, Google</br>
 
 ---
 
+**Slide Deck**</br>
+[Slide Deck](./GDG_CCD_Jaipur_2025_Serverless_Magic_Bringing_AI_Agents_to_Life_with_MCP_and_Cloud_Run_Anmol_Krishan_Sachdeva.pdf)
+
+---
+
 ## 📁 mcp-demo
 
 The `mcp-demo` directory contains a hands-on demo project for building and connecting **MCP Servers** and **MCP Clients** using [FastMCP](https://gofastmcp.com/), supporting both local and remote (cloud) deployments.
