@@ -128,5 +128,6 @@ async def explain_calculation(
 
 if __name__ == "__main__":
     logger.info("Starting Math MCP Server on http://127.0.0.1:8080/mcp")
+    # The below-mentioned run parameters are not taken into consideration when `fastmcp run` is invoked.
     mcp.run(transport="http", host="127.0.0.1", port=8080)
 

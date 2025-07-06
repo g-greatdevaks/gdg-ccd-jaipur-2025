@@ -4,6 +4,7 @@ Streamlit Host App for FastMCP 2.0 Math Server
 Features:
 - Arithmetic operations (add and subtract)
 - LLM-powered number-in-words explanation (country-specific)
+- Barcode generation via Cloud Run MCP Server (optional)
 - Robust error handling and user feedback
 """
 
@@ -16,13 +17,16 @@ import google.generativeai as genai
 import os
 from typing import Optional, Any, Dict
 
+# ---- Logging setup ----
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logger = logging.getLogger("HostApp")
 
+# ---- MCP server URLs ----
 MCP_SERVER_URL: str = "http://localhost:8080/mcp"
+CLOUDRUN_MCP_URL: str = "http://localhost:8081/mcp"  # Cloud Run Proxy URL.
 
 # ---- Gemini API Key ----
 GEMINI_API_KEY: Optional[str] = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
@@ -75,6 +79,25 @@ async def call_tool(
             logger.error(f"Error calling tool: {e}")
             return {"success": False, "error": str(e), "raw_response": str(e)}
 
+async def get_barcode_from_cloudrun(number: int, barcode_type: str = "qr") -> Optional[str]:
+    """
+    Calls the Cloud Run MCP server to generate a barcode image URL.
+
+    Args:
+        number (int): The number to encode.
+        barcode_type (str): The type of barcode.
+
+    Returns:
+        Optional[str]: The barcode image URL, or None if error.
+    """
+    try:
+        async with Client(CLOUDRUN_MCP_URL) as client:
+            response = await client.call_tool("generate_barcode", {"number": number, "type": barcode_type})
+            return response.data.get("barcode_url")
+    except Exception as e:
+        logger.error(f"Error fetching barcode from Cloud Run MCP server: {e}")
+        return None
+
 def try_cast(val: str) -> Any:
     """
     Try to cast to int or float, else return as string.
@@ -87,13 +110,48 @@ def try_cast(val: str) -> Any:
     except Exception:
         return val  # Send as string if not a number.
 
-st.title("FastMCP Number-in-Words Demo (with Gemini LLM)")
+async def perform_calculation(
+    tool: str,
+    a_val: Any,
+    b_val: Any,
+    operation: Optional[str],
+    country: Optional[str],
+    explain: bool,
+    barcode_toggle: bool,
+    barcode_type: str,
+) -> Dict[str, Any]:
+    """
+    Performs the Math/LLM call and, if requested, barcode generation.
+    """
+    # Math/LLM.
+    if explain:
+        response = await call_tool("explain_calculation", a_val, b_val, operation, country)
+    else:
+        response = await call_tool(operation, a_val, b_val)
 
-# --- Instant UI widgets ---
+    # Barcode (optional).
+    barcode_url = None
+    if barcode_toggle and response["success"]:
+        if explain:
+            numeric_result = a_val + b_val if operation == "add" else a_val - b_val
+        else:
+            numeric_result = response['result'].data
+        barcode_url = await get_barcode_from_cloudrun(numeric_result, barcode_type)
+
+    return {"response": response, "barcode_url": barcode_url}
+
+st.title("FastMCP Number-in-Words Demo (with Gemini LLM & Cloud Run-based Barcode Generator)")
+
+# --- UI widgets ---
 explain: bool = st.checkbox("Express the result in words (LLM)")
 country: Optional[str] = None
 if explain:
     country = st.selectbox("Country", ["US", "India"])
+
+barcode_toggle: bool = st.checkbox("Show Barcode using Cloud Run")
+barcode_type: Optional[str] = None
+if barcode_toggle:
+    barcode_type = st.selectbox("Barcode Type", ["qr", "code128", "code39", "ean13"])
 
 # --- Form for numbers and operation ---
 with st.form("math_form"):
@@ -111,10 +169,22 @@ if submitted:
         a_val = try_cast(a_str.strip())
         b_val = try_cast(b_str.strip())
 
-        if explain:
-            response = asyncio.run(call_tool("explain_calculation", a_val, b_val, operation, country))
-        else:
-            response = asyncio.run(call_tool(operation, a_val, b_val))
+        # Run all async work in one event loop
+        result = asyncio.run(
+            perform_calculation(
+                operation,
+                a_val,
+                b_val,
+                operation,
+                country,
+                explain,
+                barcode_toggle,
+                barcode_type,
+            )
+        )
+
+        response = result["response"]
+        barcode_url = result["barcode_url"]
 
         # Show result
         if response["success"]:
@@ -128,3 +198,14 @@ if submitted:
         # Always show full response or error from MCP server.
         st.markdown("**Full MCP Server Response/Error:**")
         st.code(str(response["raw_response"]))
+
+        # Barcode display.
+        if barcode_toggle and response["success"]:
+            if barcode_url:
+                if explain:
+                    numeric_result = a_val + b_val if operation == "add" else a_val - b_val
+                else:
+                    numeric_result = response['result'].data
+                st.image(barcode_url, caption=f"Barcode for {numeric_result}")
+            else:
+                st.error("Could not generate barcode from Cloud Run MCP server.")

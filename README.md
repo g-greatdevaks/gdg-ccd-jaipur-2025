@@ -13,17 +13,17 @@ Sr. Hybrid Cloud Architect, Google</br>
 
 ## 📁 mcp-demo
 
-The `mcp-demo` directory contains a hands-on demo project for building and connecting a local **MCP Server** and **MCP Client** using [FastMCP](https://gofastmcp.com/).
+The `mcp-demo` directory contains a hands-on demo project for building and connecting **MCP Servers** and **MCP Clients** using [FastMCP](https://gofastmcp.com/), supporting both local and remote (cloud) deployments.
 
-It features math operations, number-in-words explanations powered by Gemini LLM, a Streamlit web app, and a CLI client.
+This project features:
+- **Math operations** and **number-in-words explanations** powered by Gemini LLM (leveraging Sampling handler pattern).
+- A **Streamlit Web Application** for interactive exploration.
+- A **CLI-based MCP Client** for command-line testing.
+- A **serverless barcode generator tool** hosted on Google Cloud Run as a remote MCP Server.
 
-For complete instructions and local setup, see: [`mcp-demo/README.md`](./mcp-demo/README.md).
+The demo showcases how to compose and orchestrate tools across local and remote MCP servers, enabling hybrid LLM agent workflows.
 
----
-
-## 📚 Other Resources
-
-Additional demos and resources may be added to this repository as the event progresses.
+For complete instructions and setup, see: [`mcp-demo/README.md`](./mcp-demo/README.md).
 
 ---
 
