@@ -21,7 +21,7 @@ This project features:
 - A **CLI-based MCP Client** for command-line testing.
 - A **serverless barcode generator tool** hosted on Google Cloud Run as a remote MCP Server.
 
-The demo showcases how to compose and orchestrate tools across local and remote MCP servers, enabling hybrid LLM agent workflows.
+The demo showcases how to compose and orchestrate tools across local and remote MCP Servers, enabling hybrid LLM agent workflows.
 
 For complete instructions and setup, see: [`mcp-demo/README.md`](./mcp-demo/README.md).
 
